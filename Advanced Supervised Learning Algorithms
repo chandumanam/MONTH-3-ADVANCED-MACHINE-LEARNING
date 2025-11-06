@@ -1,0 +1,113 @@
+# Importing libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
+# ----------------------------
+# STEP 1: Load Dataset
+# ----------------------------
+# Example dataset: customer churn dataset from Kaggle
+# You can replace this with your client data file (e.g., "client_data.csv")
+
+url = "https://raw.githubusercontent.com/blastchar/telco-customer-churn/master/Telco-Customer-Churn.csv"
+data = pd.read_csv(url)
+
+# ----------------------------
+# STEP 2: Data Preprocessing
+# ----------------------------
+# Remove customerID column (not useful for training)
+
+data.drop("customerID", axis=1, inplace=True)
+
+# Convert TotalCharges to numeric
+
+data["TotalCharges"] = pd.to_numeric(data["TotalCharges"], errors="coerce")
+data["TotalCharges"].fillna(data["TotalCharges"].median(), inplace=True)
+
+# Encode categorical columns
+
+for column in data.columns:
+    if data[column].dtype == 'object':
+        le = LabelEncoder()
+        data[column] = le.fit_transform(data[column])
+
+# Split features and target
+
+X = data.drop("Churn", axis=1)
+y = data["Churn"]
+
+# Train-test split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# Standardize numerical features
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# ----------------------------
+# STEP 3: Model Training
+# ----------------------------
+# Option 1: Random Forest Classifier
+
+rf_model = RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)
+rf_model.fit(X_train, y_train)
+rf_pred = rf_model.predict(X_test)
+
+# Option 2: XGBoost Classifier (Optional Advanced Model)
+
+xgb_model = XGBClassifier(n_estimators=300, learning_rate=0.05, max_depth=8, random_state=42, use_label_encoder=False, eval_metric='logloss')
+xgb_model.fit(X_train, y_train)
+xgb_pred = xgb_model.predict(X_test)
+
+# ----------------------------
+# STEP 4: Model Evaluation
+# ----------------------------
+
+def evaluate_model(y_true, y_pred, model_name):
+    print(f"\n===== {model_name} Evaluation =====")
+    print("Accuracy:", round(accuracy_score(y_true, y_pred), 3))
+    print("Precision:", round(precision_score(y_true, y_pred), 3))
+    print("Recall:", round(recall_score(y_true, y_pred), 3))
+    print("F1-Score:", round(f1_score(y_true, y_pred), 3))
+    print("Confusion Matrix:\n", confusion_matrix(y_true, y_pred))
+    print("\nClassification Report:\n", classification_report(y_true, y_pred))
+
+# Evaluate both models
+
+evaluate_model(y_test, rf_pred, "Random Forest")
+evaluate_model(y_test, xgb_pred, "XGBoost")
+
+# ----------------------------
+# STEP 5: Hyperparameter Tuning (Optional)
+# ----------------------------
+# Uncomment to run GridSearchCV on Random Forest (takes time)
+"""
+
+param_grid = {
+    'n_estimators': [100, 200, 300],
+    'max_depth': [6, 8, 10],
+    'min_samples_split': [2, 5, 10]
+}
+
+grid_search = GridSearchCV(RandomForestClassifier(random_state=42),
+                           param_grid, cv=3, scoring='f1', verbose=1, n_jobs=-1)
+grid_search.fit(X_train, y_train)
+
+print("Best Parameters:", grid_search.best_params_)
+best_rf = grid_search.best_estimator_
+best_rf_pred = best_rf.predict(X_test)
+evaluate_model(y_test, best_rf_pred, "Tuned Random Forest")
+"""
+
+# ----------------------------
+# STEP 6: Summary
+# ----------------------------
+
+print("\n✅ Model training and evaluation complete!")
+print("You can now upload this script and include a short summary report in your submission.")
