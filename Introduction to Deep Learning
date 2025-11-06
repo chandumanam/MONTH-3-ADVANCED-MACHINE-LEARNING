@@ -1,0 +1,56 @@
+# Introduction to Deep Learning - Simple Neural Network using Keras
+# Author: [Chandu kiran]
+# Date: [06/11/2025]
+
+# Import libraries
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.utils import to_categorical
+
+# --------------------------
+# Load and preprocess data
+# --------------------------
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+# Normalize pixel values (0–255 → 0–1)
+x_train = x_train.reshape((x_train.shape[0], 28*28)) / 255.0
+x_test = x_test.reshape((x_test.shape[0], 28*28)) / 255.0
+
+# One-hot encode labels (0–9)
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+
+# --------------------------
+# Build Neural Network Model
+# --------------------------
+model = keras.Sequential([
+    layers.Dense(128, activation='relu', input_shape=(784,)),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(10, activation='softmax')  # 10 classes (digits 0–9)
+])
+
+# --------------------------
+# Compile the Model
+# --------------------------
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# --------------------------
+# Train the Model
+# --------------------------
+history = model.fit(x_train, y_train, epochs=10, batch_size=32, validation_split=0.1)
+
+# --------------------------
+# Evaluate the Model
+# --------------------------
+test_loss, test_acc = model.evaluate(x_test, y_test, verbose=0)
+print(f"\nTest Accuracy: {test_acc * 100:.2f}%")
+
+# --------------------------
+# Save the Model
+# --------------------------
+model.save("simple_mnist_model.h5")
+print("Model saved as simple_mnist_model.h5")
